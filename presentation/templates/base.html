@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Biblioteca Central{% endblock %}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&family=Public+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="{{ url_for('catalog.index') }}">Biblioteca Central</a>
+  <nav>
+    <a href="{{ url_for('catalog.index') }}">Catálogo</a>
+    {% if g.user %}
+      <a href="{{ url_for('catalog.my_loans') }}">Meus empréstimos{% if g.unread %} <span class="badge" title="Avisos novos">{{ g.unread|length }}</span>{% endif %}</a>
+      {% if g.user.is_admin %}<a href="{{ url_for('admin.loans') }}">Painel de empréstimos</a>{% endif %}
+      <form method="post" action="{{ url_for('auth.logout') }}"><button class="link">Sair ({{ g.user.name.split()[0] }})</button></form>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">Entrar</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}<p class="flash {{ cat }}" role="status">{{ msg }}</p>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

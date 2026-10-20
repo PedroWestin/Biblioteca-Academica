@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Catálogo</h1>
+<form class="search" method="get" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Busque por título, autor ou ISBN" aria-label="Buscar no acervo" autofocus>
+  <input type="hidden" name="categoria" value="{{ categoria }}">
+  <button class="primary">Buscar</button>
+</form>
+<nav class="chips" aria-label="Filtrar por categoria">
+  <a href="{{ url_for('catalog.index', q=q) }}" {% if not categoria %}aria-current="true"{% endif %}>Todas</a>
+  {% for c in categories %}<a href="{{ url_for('catalog.index', q=q, categoria=c) }}" {% if c == categoria %}aria-current="true"{% endif %}>{{ c }}</a>{% endfor %}
+</nav>
+
+{% if not books %}
+  <p class="empty">Nenhuma obra encontrada. Tente outro termo ou <a href="{{ url_for('catalog.index') }}">limpe os filtros</a>.</p>
+{% else %}
+<p class="muted">{{ books|length }} obra(s) no resultado</p>
+<ul class="shelf">
+  {% for b in books %}
+  <li>
+    <a class="cover" style="--h: {{ b.category|hue }}" href="{{ url_for('catalog.book_detail', book_id=b.id) }}" aria-label="Detalhes de {{ b.title }}">
+      <span>{{ b.title }}</span><small>{{ b.author }}</small>
+    </a>
+    <div>
+      <h2><a href="{{ url_for('catalog.book_detail', book_id=b.id) }}">{{ b.title }}</a></h2>
+      <p class="muted">{{ b.author }}<br>{{ b.category }}, {{ b.year }}</p>
+      {% if b.available > 0 %}
+        <p class="status ok">Disponível: {{ b.available }} de {{ b.total }} exemplar(es)</p>
+      {% else %}
+        <p class="status off">Indisponível{% if b.queue %}. {{ b.queue }} na fila de reserva{% endif %}</p>
+      {% endif %}
+    </div>
+    <form method="post" action="{{ url_for('catalog.request_book', book_id=b.id) }}">
+      <input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="categoria" value="{{ categoria }}">
+      {% if not g.user %}<a class="btn" href="{{ url_for('auth.login') }}">Entre para solicitar</a>
+      {% else %}<button class="{{ 'primary' if b.available > 0 else '' }}">{{ 'Solicitar empréstimo' if b.available > 0 else 'Reservar' }}</button>{% endif %}
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

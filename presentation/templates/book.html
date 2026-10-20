@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ book.title }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('catalog.index') }}">Voltar ao catálogo</a></p>
+<section class="detail">
+  <div class="cover" style="--h: {{ book.category|hue }}"><span>{{ book.title }}</span><small>{{ book.author }}</small></div>
+  <div>
+    <h1>{{ book.title }}</h1>
+    <p class="muted">{{ book.author }}<br>{{ book.category }}, {{ book.year }}<br>ISBN {{ book.isbn }}</p>
+    <p class="status {{ 'ok' if book.available else 'off' }}">{{ book.available }} de {{ book.total }} exemplar(es) disponível(is){% if book.queue %}. {{ book.queue }} na fila de reserva{% endif %}</p>
+    <form method="post" action="{{ url_for('catalog.request_book', book_id=book.id) }}">
+      {% if g.user %}<button class="primary">{{ 'Solicitar empréstimo' if book.available else 'Reservar' }}</button>
+      {% else %}<a class="btn" href="{{ url_for('auth.login') }}">Entre para solicitar</a>{% endif %}
+    </form>
+  </div>
+</section>
+<h2>Exemplares</h2>
+<div class="scroll"><table>
+  <thead><tr><th>Código</th><th>Situação</th>{% if g.user and g.user.is_admin %}<th>Controle</th>{% endif %}</tr></thead>
+  <tbody>{% for c in copies %}
+    <tr><td>{{ c.code }}</td><td>{{ c.status|capitalize }}</td>
+    {% if g.user and g.user.is_admin %}<td>
+      <form class="inline" method="post" action="{{ url_for('catalog.copy_status', copy_id=c.id) }}">
+        <input type="hidden" name="book_id" value="{{ book.id }}">
+        <select name="status" aria-label="Novo status"><option>DISPONIVEL</option><option>DANIFICADO</option><option>EXTRAVIADO</option></select>
+        <button>Atualizar</button>
+      </form></td>{% endif %}
+    </tr>{% endfor %}
+  </tbody></table></div>
+{% endblock %}

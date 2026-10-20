@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Entrar' if mode == 'login' else 'Criar conta' }}{% endblock %}
+{% block content %}
+<section class="auth">
+  <h1>{{ 'Entrar na biblioteca' if mode == 'login' else 'Criar conta de leitor' }}</h1>
+  <form method="post">
+    {% if mode == 'register' %}<label>Nome completo<input name="name" required autocomplete="name"></label>{% endif %}
+    <label>E-mail institucional<input type="email" name="email" required autocomplete="email"></label>
+    <label>Senha<input type="password" name="password" required minlength="6" autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}"></label>
+    {% if mode == 'register' %}
+    <label>Perfil<select name="profile"><option value="ALUNO">Aluno</option><option value="PROFESSOR">Professor</option></select></label>
+    {% endif %}
+    <button class="primary">{{ 'Entrar' if mode == 'login' else 'Criar conta' }}</button>
+  </form>
+  <p class="muted">{% if mode == 'login' %}Ainda não tem conta? <a href="{{ url_for('auth.register') }}">Crie a sua</a>.{% else %}Já tem conta? <a href="{{ url_for('auth.login') }}">Entre aqui</a>.{% endif %}</p>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Meus empréstimos{% endblock %}
+{% block content %}
+<h1>Meus empréstimos</h1>
+{% for n in g.unread %}<p class="flash info">{{ n.message }}</p>{% endfor %}
+{% if pending_fines %}<p class="flash erro">Você tem {{ pending_fines|brl }} em multas abertas. Novos pedidos ficam bloqueados até o pagamento.</p>{% endif %}
+
+<div class="scroll"><table>
+  <thead><tr><th>Obra</th><th>Retirada</th><th>Devolução</th><th>Situação</th><th></th></tr></thead>
+  <tbody>
+  {% for r in loans %}
+    <tr class="{{ 'late' if r.overdue }}">
+      <td>{{ r.title }}<br><span class="muted">Exemplar {{ r.copy_code }}</span></td>
+      <td>{{ r.loaned_at|br_date }}</td>
+      <td>{{ r.due_at|br_date }}</td>
+      <td>{% if r.returned_at %}Devolvido em {{ r.returned_at|br_date }}
+          {% elif r.overdue %}<span class="tag red">{{ r.overdue_days }} dia(s) de atraso</span>
+          {% elif r.renewal_requested %}<span class="tag amber">Renovação em análise</span>
+          {% else %}<span class="tag green">Em dia</span>{% endif %}
+          {% if r.fine_amount %}<br>Multa: {{ r.fine_amount|brl }} ({{ 'paga' if r.fine_status == 'PAGA' else 'em aberto' }}){% endif %}</td>
+      <td>{% if not r.returned_at and r.can_renew and not r.renewal_requested %}
+        <form method="post" action="{{ url_for('catalog.request_renewal', loan_id=r.id) }}"><button>Pedir renovação</button></form>{% endif %}</td>
+    </tr>
+  {% else %}<tr><td colspan="5" class="empty">Você ainda não pegou nenhum livro. <a href="{{ url_for('catalog.index') }}">Explore o catálogo</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+{% if reservations %}
+<h2>Reservas na fila</h2>
+<ul class="plain">{% for r in reservations %}<li>{{ r.title }}: {{ 'disponível para retirada, solicite no catálogo' if r.status == 'NOTIFICADA' else 'aguardando devolução' }}</li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

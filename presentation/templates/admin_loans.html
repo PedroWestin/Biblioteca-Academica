@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Painel de empréstimos{% endblock %}
+{% block content %}
+{% macro act(endpoint, label, cls='') %}
+  <form method="post" action="{{ url_for(endpoint, **kwargs) }}"><input type="hidden" name="visao" value="{{ view }}"><button class="{{ cls }}">{{ label }}</button></form>
+{% endmacro %}
+<div class="bar">
+  <h1>Painel de empréstimos</h1>
+  <form method="post" action="{{ url_for('admin.reminders') }}"><input type="hidden" name="visao" value="{{ view }}"><button>Enviar lembretes de prazo</button></form>
+</div>
+<p class="muted">Multas em aberto no acervo: <strong>{{ open_fines|brl }}</strong></p>
+
+{% set tabs = [('ativos','Ativos'),('atrasados','Atrasados'),('renovacoes','Renovações pendentes'),('historico','Histórico')] %}
+<nav class="tabs" aria-label="Visões">
+  {% for key, label in tabs %}<a href="{{ url_for('admin.loans', visao=key) }}" {% if key == view %}aria-current="page"{% endif %}>{{ label }} <span class="count {{ 'hot' if key in ('atrasados','renovacoes') and counts[key] }}">{{ counts[key] }}</span></a>{% endfor %}
+</nav>
+
+<div class="scroll"><table class="wide">
+  <thead><tr><th>Leitor</th><th>Obra</th><th>Retirada</th><th>{{ 'Devolvido em' if view == 'historico' else 'Vencimento' }}</th><th>Situação</th><th>Multa</th><th>Ações</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    {% set fine = r.fine_amount if r.fine_amount is not none else r.fine_estimate %}
+    <tr class="{{ 'late' if r.overdue }}">
+      <td>{{ r.user_name }}<br><span class="muted">{{ r.user_profile|profile }}</span></td>
+      <td>{{ r.title }}<br><span class="muted">Exemplar {{ r.copy_code }}</span></td>
+      <td>{{ r.loaned_at|br_date }}</td>
+      <td>{{ (r.returned_at if view == 'historico' else r.due_at)|br_date }}</td>
+      <td>
+        {% if r.returned_at %}<span class="tag">Devolvido</span>
+        {% elif r.overdue %}<span class="tag red">{{ r.overdue_days }} dia(s) de atraso</span>
+        {% else %}<span class="tag green">Em dia</span>{% endif %}
+        {% if r.renewal_requested %}<span class="tag amber">Renovação pedida</span>{% endif %}
+        <br><span class="muted">Renovações: {{ r.renewals }} de {{ r.max_renewals }}</span>
+      </td>
+      <td>{% if fine %}{{ fine|brl }}<br><span class="muted">{{ 'paga' if r.fine_status == 'PAGA' else ('registrada' if r.fine_status else 'estimada') }}</span>{% else %}—{% endif %}</td>
+      <td class="actions">
+        {% if not r.returned_at %}
+          {{ act('admin.give_back', 'Registrar devolução', 'primary', loan_id=r.id) }}
+          {% if r.overdue %}{{ act('admin.calc_fine', 'Calcular multa', '', loan_id=r.id) }}{% endif %}
+          {% if r.renewal_requested %}
+            {{ act('admin.renewal', 'Aprovar renovação', 'primary', loan_id=r.id, action='aprovar') }}
+            {{ act('admin.renewal', 'Recusar', '', loan_id=r.id, action='recusar') }}
+          {% endif %}
+        {% elif r.fine_status == 'ABERTA' %}
+          {{ act('admin.pay_fine', 'Registrar pagamento', '', fine_id=r.fine_id) }}
+        {% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7" class="empty">Nada por aqui. {{ {'atrasados': 'Nenhum empréstimo está atrasado.', 'renovacoes': 'Nenhuma renovação aguarda aprovação.', 'ativos': 'Não há empréstimos em aberto.', 'historico': 'Ainda não há devoluções.'}[view] }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}
